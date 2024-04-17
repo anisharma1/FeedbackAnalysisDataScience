@@ -21,20 +21,23 @@ stopButton.addEventListener("click", () => {
 });
 
 recognition.onresult = (event) => {
-	const result = event.results[event.results.length - 1][0].transcript;
-	console.log(result);
-	outputDiv.textContent = `${result}`;
+	const user_input = event.results[event.results.length - 1][0].transcript;
+	console.log(user_input);
+	// Display user input in the userText div
+	document.getElementById("userText").textContent = user_input;
+
 	fetch("/analyze_emotion", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 		},
-		body: JSON.stringify({ text: result }),
+		body: JSON.stringify({ text: user_input }),
 	})
 		.then((response) => response.json())
 		.then((data) => {
 			console.log(data.emotion);
-			outputDiv.textContent = `${result} \n Detected Emotion: ${data.emotion}`;
+			// Display user input and detected emotion in the output div
+			outputDiv.textContent = `Detected Emotion: ${data.emotion}`;
 		})
 		.catch((error) => console.error("Error:", error));
 };
