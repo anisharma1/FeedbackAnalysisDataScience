@@ -22,6 +22,7 @@ stopButton.addEventListener('click', () => {
 
 recognition.onresult = event => {
     const result = event.results[event.results.length - 1][0].transcript;
+    console.log(result);
     outputDiv.textContent = result;
 };
 
