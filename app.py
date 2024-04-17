@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
 
-app = Flask(__name__)
+app = Flask(__name__) 
 
 # Download the VADER lexicon if not already downloaded
 nltk.download('vader_lexicon')
