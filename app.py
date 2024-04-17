@@ -1,17 +1,11 @@
-from flask import Flask, request, jsonify, render_template
-#from transformers import pipeline
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-import nltk
+from flask import Flask, request, render_template
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.pipeline import make_pipeline
+from sklearn.tree import DecisionTreeClassifier
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
-
-# Download the VADER lexicon
-nltk.download('vader_lexicon')
-# Download NLTK resources
-#nltk.download('punkt')
-
-# Initialize BERT-based emotion detection pipeline
-#emotion_classifier = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
 
 @app.route('/', methods=['GET'])
 def home():
@@ -20,55 +14,55 @@ def home():
 @app.route('/feedback_analysis')
 def feedback_analysis():
     return render_template('feedback_analysis.html')
+# Load data from text file
+def load_data(file_path):
+    X = []
+    y = []
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            text, label = line.rsplit(';', 1)
+            X.append(text)
+            if label == 'sadness':
+                y.append(0)
+            elif label == 'anger':
+                y.append(1)
+            elif label == 'love':
+                y.append(2)
+            elif label == 'surprise':
+                y.append(3)
+            elif label == 'fear':
+                y.append(4)
+            elif label == 'joy':
+                y.append(5)
+            else:
+                raise ValueError("Invalid label: {}".format(label))
+    return X, y
 
-@app.route('/analyze_emotion', methods=['POST'])
-def analyze_emotion_vader():
-    # Get the text from the request
-    text = request.json['text']
+# Load data
+data_file = r'FeedbackAnalysisDataScience\train.txt'  # Adjust the file path as needed
+X_train, y_train = load_data(data_file)
 
-    # Perform sentiment analysis with VADER
-    sid = SentimentIntensityAnalyzer()
-    scores = sid.polarity_scores(text)
+# Create and train the model
+model = make_pipeline(
+    CountVectorizer(),
+    DecisionTreeClassifier()
+)
+model.fit(X_train, y_train)
 
-    # Determine the dominant emotion based on the sentiment scores
-    dominant_emotion = determine_emotion(scores)
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        text = request.form['text']
+        # Predict sentiment for the input text
+        sentiment_scores = model.predict_proba([text])[0]
+        sadness, anger, love, surprise, fear, joy = sentiment_scores
 
-    # Return the emotion as JSON
-    return jsonify({'emotion': dominant_emotion.capitalize()})
 
-#helper for VADER code
-def determine_emotion(scores):
-    # Get the sentiment scores
-    pos_score = scores['pos']
-    neg_score = scores['neg']
-    neu_score = scores['neu']
 
-    # Determine the dominant emotion based on the scores
-    if pos_score > neg_score and pos_score > neu_score:
-        return 'happy'
-    elif neg_score > pos_score and neg_score > neu_score:
-        return 'sad'
-    elif neu_score > pos_score and neu_score > neg_score:
-        return 'neutral'
-    else:
-        return 'angry'
-
+        return render_template('result.html', text=text, sadness=sadness, anger=anger, love=love,
+                               surprise=surprise, fear=fear, joy=joy)
+    return render_template('index.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
-
-
-"""
-def analyze_emotion_bert():
-    # Get the text from the request
-    text = request.json['text']
-
-    # Perform emotion detection with BERT-based model
-    results = emotion_classifier(text)
-
-    # Extract the dominant emotion
-    dominant_emotion = results[0]['label']
-
-    # Return the emotion as JSON
-    return jsonify({'emotion': dominant_emotion.capitalize()})
-"""
+    app.run(debug=True, port = 8008)
